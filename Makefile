@@ -47,7 +47,7 @@ RTL_DEPS+=$(wildcard $(SRC_DIR)/*.v)
 LINT_FLAGS := -Wall -Wpedantic -Ilib
 
 lint: $(RTL_DEPS)
-	verilator $(CONF)/$(WAIVER_FILE) -y $(SRC_DIR) $(CORE_DIR) -DVERILATOR_LINT=1 --lint-only $(LINT_FLAGS) --no-timing $^ --top $(PROJECT_NAME)
+	verilator $(CONF)/$(WAIVER_FILE) -y $(SRC_DIR) -y $(HAZARD_CORE_DIR) -DVERILATOR_LINT=1 --lint-only $(LINT_FLAGS) --no-timing $^ --top $(PROJECT_NAME)
 .PHONY: lint
 
 

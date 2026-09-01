@@ -37,7 +37,7 @@ parameter MTVEC_INIT          = 32'h00000000,
 parameter EXTENSION_A         = 1,
 
 // EXTENSION_C: Support for compressed (variable-width) instructions
-parameter EXTENSION_C         = 0,
+parameter EXTENSION_C         = 1,
 
 // EXTENSION_E: Implement the RV32E base extension rather than RV32I. This
 // reduces the number of integer registers from 31 to 15.

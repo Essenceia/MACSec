@@ -59,5 +59,6 @@ async def pn_test_send_config(dut):
 	cocotb.log.info(f"writing config {conf}") 
 	await pn_enc_utils.send_config(dut, conf)
 	exp_pn = conf.get_pn32()
-	assert dut.pn_enc_pn.value == exp_pn, f"PN[31:0] missmatch:\n\texp: 0x{exp_pn.hex()}\n\tgot: {hex(dut.pn_enc_pn.value)}"
+	got_pn = dut.pn_enc_pn.value.to_bytes(byteorder="big")
+	assert got_pn == exp_pn , f"PN[31:0] missmatch:\n\texp: 0x{exp_pn.hex()}\n\tgot: {hex(got_pn)}"
 	

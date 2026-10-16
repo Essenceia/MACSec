@@ -30,6 +30,7 @@ async def send_config(dut, conf: enc_config):
 		if i % 2 == 1: 
 			await ClockCycles(dut.clk, 1)
 	dut.pn_sram_v.value = 0 
+	dut.pn_enc_sending_tag_v.value = 0 
 	dut.pn_sram.value = "X"*16
 	dut.pn_sram_pn.value = "X"
 

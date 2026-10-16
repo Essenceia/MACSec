@@ -42,6 +42,21 @@ class enc_config:
 		assert(len(iv) == 12)
 		return iv
 
+	# representable number
+	def get_pn32(self) -> bytearray: 
+		number = bytearray(4)
+		# swap pair
+		for i in range(0,4,2):
+			number[i] = self.pn[i+1]
+			number[i+1] = self.pn[i]
+		# swap endian 
+		end = bytearray(4) 
+		for i in range(0,4): 
+			end[i] = number[3-i]
+		return end
+
+	
+
 def create_random_config() -> enc_config: 
 	pn = random.randbytes(8) 
 	sci = random.randbytes(8) 

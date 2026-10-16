@@ -22,7 +22,7 @@ GATES = os.getenv("GATES", False)
 
 CLK_UNIT="ns"
 CLK_PERIOD=20
-RST_CYCLES=10
+RST_CYCLES=5
 
 if "TEST_ITER" in os.environ:
 	TEST_ITER = int(os.environ["TEST_ITER"].lower().strip())
@@ -56,6 +56,8 @@ async def pn_test_send_config(dut):
 	set_random_seed()
 	await rst(dut)
 	conf = enc_config.create_random_config()
+	cocotb.log.info(f"writing config {conf}") 
 	await pn_enc_utils.send_config(dut, conf)
-	assert(dut.pn_enc_pn == conf.pn[4:7])
+	exp_pn = conf.get_pn32()
+	assert dut.pn_enc_pn.value == exp_pn, f"PN[31:0] missmatch:\n\texp: 0x{exp_pn.hex()}\n\tgot: {hex(dut.pn_enc_pn.value)}"
 	

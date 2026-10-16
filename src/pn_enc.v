@@ -14,24 +14,25 @@ module pn_enc #(
 	input wire clk, 
 	input wire rst_n, 
 
-	input wire                 sai_init_v_i, 
-	input wire                 sai_64b_pn_i, 	
+	input wire               sai_init_v_i, 
+	input wire               sai_64b_pn_i, 	
 
 	
-	input wire              sram_v_i, 
-	input wire              sram_pn_i, 
-	input wire [SRAM_W-1:0] sram_i,
+	input wire               sram_v_i, 
+	input wire               sram_pn_i, 
+	input wire [SRAM_W-1:0]  sram_i,
 
 	// increment PN on enc pkts, will do inc on tag send
-	input wire pn_inc_i, 
+	input wire               pn_inc_i, 
 
-	// from enc
-	input wire send_tag_v_i, 
+	// from/to enc
+	input wire               enc_sending_tag_v_i,
+	output wire [31:0]       enc_pn_o,  
 
 	// to SAI table
 	output reg               sai_pn_wr_v_o,
 	output reg  [1:0]        sai_pn_wr_idx_o,  
-	output reg  [SRAM_W-1:0] sai_pn_o,
+	output reg  [SRAM_W-1:0] sai_pn_wr_o,
 
 	output wire              sai_pn_ctrl_v_o,
 	output wire              sai_pn_expire_o, // send sa expire signal 
@@ -60,7 +61,7 @@ always @(posedge clk) begin
 	else case(fsm_pn_q) 
 		FSM_PN_IDLE:      fsm_pn_q <=  sram_v_i ? FSM_PN_RD:   FSM_PN_IDLE; 
 		FSM_PN_RD:        fsm_pn_q <= ~sram_v_i ? FSM_PN_HOLD: FSM_PN_RD; 
-		FSM_PN_HOLD:      fsm_pn_q <=  send_tag_v_i? FSM_PN_WRITEBACK: FSM_PN_HOLD; 
+		FSM_PN_HOLD:      fsm_pn_q <=  enc_sending_tag_v_i? FSM_PN_WRITEBACK: FSM_PN_HOLD; 
 		FSM_PN_WRITEBACK: fsm_pn_q <=  ~|cnt_q ? FSM_PN_CTRL: FSM_PN_WRITEBACK; 
 		FSM_PN_CTRL:      fsm_pn_q <=  FSM_PN_IDLE; 
 		default:          fsm_pn_q <=  FSM_PN_IDLE;
@@ -96,11 +97,13 @@ assign sai_pn_ctrl_v_o     = (fsm_pn_q == FSM_PN_CTRL);
 assign sai_pn_expire_o     = inc_q; 
 assign sai_pn_wathermark_o = sai_64b_pn_i ? |pn_q[63:62] : |pn_q[31:30]; 
 
-// output write 
+// sram write 
 always @(posedge clk) begin
 	sai_pn_wr_v_o   <= fsm_pn_q == FSM_PN_WRITEBACK; 
 	sai_pn_wr_idx_o <= cnt_q; 
-	sai_pn_o        <= pn_inc; 
+	sai_pn_wr_o     <= pn_inc; 
 end 
 
+// encoder pn 
+assign enc_pn_o = pn_q[31:0]; 
 endmodule

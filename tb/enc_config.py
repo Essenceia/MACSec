@@ -55,8 +55,6 @@ class enc_config:
 			end[i] = number[3-i]
 		return end
 
-	
-
 def create_random_config() -> enc_config: 
 	pn = random.randbytes(8) 
 	sci = random.randbytes(8) 

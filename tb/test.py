@@ -52,7 +52,7 @@ async def rst(dut, ena=1 ):
 	await ClockCycles(dut.clk, 1)
 		
 @cocotb.test()
-async def pn_test_send_config(dut):
+async def pn_send_config(dut):
 	set_random_seed()
 	await rst(dut)
 	conf = enc_config.create_random_config()
@@ -61,4 +61,13 @@ async def pn_test_send_config(dut):
 	exp_pn = conf.get_pn32()
 	got_pn = dut.pn_enc_pn.value.to_bytes(byteorder="big")
 	assert got_pn == exp_pn , f"PN[31:0] missmatch:\n\texp: 0x{exp_pn.hex()}\n\tgot: {hex(got_pn)}"
-	
+
+@cocotb.test()
+async def pn_random_pkt(dut): 
+	set_random_seed()
+	await rst(dut) 
+	for _ in range(TEST_ITER): 
+		conf = enc_config.create_random_config()
+		pkt_l = random.randrange(14, 50)
+		await pn_enc_utils.simulate_pkt(dut, conf, pkt_l) 
+			

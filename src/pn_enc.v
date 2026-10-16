@@ -5,6 +5,8 @@ or used as part of any training dataset.
 
 Pre-load aes(H) and K from SRAM 
 */
+`default_nettype none
+
 module pn_enc #(
 	parameter SRAM_W = 16,
 	localparam PN_W  = 64
@@ -42,11 +44,16 @@ localparam FSM_PN_WRITEBACK = 3'd3;
 localparam FSM_PN_CTRL      = 3'd4;
 reg [2:0] fsm_pn_q; 
 
-localparam INC_W   = SRAM_W; 
-localparam CNT_MAX = PN_W/SRAM_W;
-localparam CNT_W = $clog2(CNT_MAX);
+localparam INC_W       = SRAM_W; 
+localparam _CNT_64_MAX = 64/SRAM_W - 1; // 7
+localparam _CNT_32_MAX = 32/SRAM_W - 1; // 3
+localparam CNT_W       = $clog2(_CNT_64_MAX);
+/* verilator lint_off WIDTHTRUNC */
+localparam [CNT_W-1:0] CNT_64_MAX = _CNT_64_MAX; 
+localparam [CNT_W-1:0] CNT_32_MAX = _CNT_32_MAX; 
+/* verilator lint_on WIDTHTRUNC */
 
-wire [CNT_W-1:0] cnt_q; 
+reg [CNT_W-1:0] cnt_q; 
 
 always @(posedge clk) begin
 	if (~rst_n| sai_init_v_i) fsm_pn_q <= FSM_PN_IDLE; 
@@ -63,7 +70,6 @@ end
 wire             pn_shift; 
 reg  [PN_W-1:0]  pn_q; 
 wire [INC_W-1:0] pn_inc; 
-wire [INC_W-1:0] pn_lsb_next;
 reg              inc_q;
 wire             pn_inc_carry;  
 
@@ -73,21 +79,26 @@ assign pn_shift     = (sram_v_i & sram_pn_i)
 always @(posedge clk) 
 	if (pn_shift) pn_q <= {sram_i, pn_q[PN_W-1:SRAM_W]};
 
+// pn sections to increment, depends on the size of the PN: 64 or 32b
+always @(posedge clk) 
+	if (fsm_pn_q != FSM_PN_WRITEBACK) cnt_q <= sai_64b_pn_i ? CNT_64_MAX: CNT_32_MAX; 
+	else cnt_q <= cnt_q - {{CNT_W-1{1'b0}}, 1'b1};
+
 // increment carry 
-assign {pn_inc_carry, pn_inc} = pn_q[SRAM_W-1:0] + inc_q;  
+assign {pn_inc_carry, pn_inc} = pn_q[INC_W-1:0] + {{INC_W{1'b0}}, inc_q};  
 
 always @(posedge clk)
 	if (fsm_pn_q == FSM_PN_HOLD) inc_q <= pn_inc_i; 
 	else inc_q <= pn_inc_carry; 
 
 // ctrl  
-assign sai_pn_ctrl_v_o     = (fsm_q == FSM_PN_CTRL);
+assign sai_pn_ctrl_v_o     = (fsm_pn_q == FSM_PN_CTRL);
 assign sai_pn_expire_o     = inc_q; 
 assign sai_pn_wathermark_o = sai_64b_pn_i ? |pn_q[63:62] : |pn_q[31:30]; 
 
 // output write 
 always @(posedge clk) begin
-	sai_pn_wr_v_o   <= fsm_q == FSM_PN_WRITEBACK; 
+	sai_pn_wr_v_o   <= fsm_pn_q == FSM_PN_WRITEBACK; 
 	sai_pn_wr_idx_o <= cnt_q; 
 	sai_pn_o        <= pn_inc; 
 end 
